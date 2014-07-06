@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link href='https://fonts.googleapis.com/css?family=Architects+Daughter' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen" />
+    <link rel="stylesheet" type="text/css" href="stylesheets/pygment_trac.css" media="screen" />
+    <link rel="stylesheet" type="text/css" href="stylesheets/print.css" media="print" />
+
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+    <title>Msgreader by Sicos1977</title>
+  </head>
+
+  <body>
+    <header>
+      <div class="inner">
+        <h1>Msgreader</h1>
+        <h2>C# Outlook MSG and EML file reader without the need for Outlook</h2>
+        <a href="https://github.com/Sicos1977/MSGReader" class="button"><small>View project on</small>GitHub</a>
+      </div>
+    </header>
+
+    <div id="content-wrapper">
+      <div class="inner clearfix">
+        <section id="main-content">
+          <h1>
+<a name="msgreader" class="anchor" href="#msgreader"><span class="octicon octicon-link"></span></a>MSGReader</h1>
+
+<ul>
+<li>
+<p>2014-07-06 Version 1.7</p>
+
+<ul>
+<li>Added support for signed MSG files</li>
+<li>Added support for EML (Mime 1.0 encoded) files</li>
+<li>Fixed issue with double quotes not getting parsed correctly from HTML embedded into RTF</li>
+</ul>
+</li>
+<li>
+<p>2014-06-20 Version 1.6.1</p>
+
+<ul>
+<li>Added support for multi value STRING8 type properties</li>
+<li>Added option to msgviewer to save the E-mail as a text file</li>
+<li>Fixed issue with window positioning in the msgviewer program</li>
+<li>Added CPOL license file</li>
+</ul>
+</li>
+<li>
+<p>2014-06-12 Version 1.6</p>
+
+<ul>
+<li>Fixed bug in E-mail CC field that also went into the BCC field</li>
+<li>Fixed bug in appointment mapping</li>
+<li>Added AllAttendees, ToAttendees and CCAttendees properties to Appointment class</li>
+<li>Added MSGMapper tool, with this tool properties from msg files can be mapped to extended file properties 
+(Windows 7 or higher is needed for this)</li>
+<li>Added Outlook properties to extended file properties mapping for:
+
+<ul>
+<li>E-mails</li>
+<li>Appointments</li>
+<li>Tasks</li>
+<li>Contacts</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p>2014-04-29 Version 1.5</p>
+
+<ul>
+<li>Added Outlook contact(card) support</li>
+<li>Made properties late binding</li>
+</ul>
+</li>
+<li>
+<p>2014-04-21 Version 1.4</p>
+
+<ul>
+<li>Full support for MAPI named properties</li>
+<li>Added support for OLE attachments</li>
+<li>Added Outlook Appointment support</li>
+<li>Added Outlook Sticky notes support</li>
+<li>Added support so that ole images in RTF files get rendered correctly after converison to HTML (Tried to be as        close as possible to how it looks in Outlook).</li>
+<li>Extended E-mail support with RTF to HTML conversion. When there is no HTML body part and there is an RTF part 
+then this one gets converted to HTML.</li>
+<li>Moved all language specific things to a separate class so that this component can be easily translated to other       languages. Please send me the translations if you do this.</li>
+<li>Fixed a lot of bugs and made speed improvements</li>
+</ul>
+</li>
+<li>
+<p>2014-03-03 Version 1.3</p>
+
+<ul>
+<li>Completed implementing Outlook flag system on E-mail MSG object</li>
+<li>Made all the MAPI functions private</li>
+<li>Moved all language related things into a separate file so that it is easy to translate</li>
+<li>Moved all MAPI constants to a seperate file and added comment</li>
+<li>Removed some unused classes</li>
+<li>Cleaned up the code</li>
+<li>Added option to convert attachment locations to hyperlinks</li>
+<li>Fixed remove &lt; and &gt; when there is no E-mail address and only a displayname</li>
+<li>Fixed issue with SentOn and Received on not being parsed as a DateTime values</li>
+<li>Added support for categories in msg files (Outlook 2007 or later)</li>
+<li>Fixed issue with E-mail address and displayname being swapped</li>
+<li>Added RtfToHtmlConverter class (to convert RTF to HTML)</li>
+<li>Added Message Type property so that we know what kind of MSG object we have</li>
+</ul>
+</li>
+<li>
+<p>2014-03-20 Version 1.2.1</p>
+
+<ul>
+<li> Added support for double byte char sets like Chinese</li>
+</ul>
+</li>
+<li>
+<p>2014-03-18 Version 1.2</p>
+
+<ul>
+<li> Fixed an issue with the Sent On (this was not set to the local timezone)</li>
+<li> Added Received On, this is now added to the injected Outlook header</li>
+<li> Added using statement to message object</li>
+<li> Made some Native Methods internal</li>
+<li> Fixed some disposing issues, this was done more the once on some places</li>
+<li> Refactored the code so that everything was correct according to the Microsoft code rules</li>
+</ul>
+</li>
+<li>
+<p>2014-03-06 Version 1.1</p>
+
+<ul>
+<li> Added support for special characters like German umlauts, they are parsed out of the HTML text that is                 embedded inside the RTF</li>
+<li> The RTFBody was loaded 4 times instead of once</li>
+<li> A CC was always added even when there was no CC (the To was taken in that case)</li>
+<li> Fixed some minor issues and cleaned up the code </li>
+</ul>
+</li>
+<li><p>2014-01-16 First release</p></li>
+</ul><h1>
+<a name="translations" class="anchor" href="#translations"><span class="octicon octicon-link"></span></a>Translations</h1>
+
+<ul>
+<li>
+<p>Kees van Spelde</p>
+
+<ul>
+<li>English (US)</li>
+<li>Dutch</li>
+</ul>
+</li>
+<li>
+<p>Ronald Kohl</p>
+
+<ul>
+<li>German</li>
+</ul>
+</li>
+</ul><h1>
+<a name="side-note" class="anchor" href="#side-note"><span class="octicon octicon-link"></span></a>Side note</h1>
+
+<p>This project can also be used from a COM based language like VB script or VB6.
+To use it first compile the code and register the com visible assembly with the command:</p>
+
+<p>Regasm.exe /codebase DocumentServices.Modules.Readers.MsgReader.dll</p>
+
+<p>After that you can call it like this:</p>
+
+<p>dim msgreader
+set msgreader = createobject("DocumentServices.Modules.Readers.MsgReader.Reader")
+msgreader.ExtractToFolder "the msg file to read", "the folder where to place the extracted files"</p>
+
+<h1>
+<a name="license" class="anchor" href="#license"><span class="octicon octicon-link"></span></a>License</h1>
+
+<p>Copyright 2013-2014 Kees van Spelde.</p>
+
+<p>Licensed under the The Code Project Open License (CPOL) 1.02; you may not use this software except in compliance with the License. You may obtain a copy of the License at:</p>
+
+<p><a href="http://www.codeproject.com/info/cpol10.aspx">http://www.codeproject.com/info/cpol10.aspx</a></p>
+
+<p>Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.</p>
+
+<h1>
+<a name="core-team" class="anchor" href="#core-team"><span class="octicon octicon-link"></span></a>Core Team</h1>
+
+<pre><code>Sicos1977 (Kees van Spelde)
+</code></pre>
+        </section>
+
+        <aside id="sidebar">
+          <a href="https://github.com/Sicos1977/MSGReader/zipball/master" class="button">
+            <small>Download</small>
+            .zip file
+          </a>
+          <a href="https://github.com/Sicos1977/MSGReader/tarball/master" class="button">
+            <small>Download</small>
+            .tar.gz file
+          </a>
+
+          <p class="repo-owner"><a href="https://github.com/Sicos1977/MSGReader"></a> is maintained by <a href="https://github.com/Sicos1977">Sicos1977</a>.</p>
+
+          <p>This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the Architect theme by <a href="https://twitter.com/jasonlong">Jason Long</a>.</p>
+        </aside>
+      </div>
+    </div>
+
+  
+  </body>
+</html>
