@@ -5,9 +5,9 @@
     <meta http-equiv="X-UA-Compatible" content="chrome=1">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
     <link href='https://fonts.googleapis.com/css?family=Architects+Daughter' rel='stylesheet' type='text/css'>
-    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen" />
-    <link rel="stylesheet" type="text/css" href="stylesheets/pygment_trac.css" media="screen" />
-    <link rel="stylesheet" type="text/css" href="stylesheets/print.css" media="print" />
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/pygment_trac.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/print.css" media="print">
 
     <!--[if lt IE 9]>
     <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
@@ -32,6 +32,24 @@
 <a name="msgreader" class="anchor" href="#msgreader"><span class="octicon octicon-link"></span></a>MSGReader</h1>
 
 <ul>
+<li>
+<p>2014-08-14 Version 1.7.4</p>
+
+<ul>
+<li>Added creationtime and lastmodificationtime to message and attachment class</li>
+<li>Added methode to delete attachments</li>
+</ul>
+</li>
+<li>
+<p>2014-09-08 Version 1.7.3</p>
+
+<ul>
+<li>Moved language const files to resource files</li>
+<li>Made this version available as a nuget package (search for MSGReader)</li>
+<li>Fixed some comment typo's</li>
+<li>There are 3 languages (nl-NL, de-DE and en-US (default) available when you use the Reader class. You can set the language by using the SetCulture method. For example SetCulture("nl-NL") to set it to Dutch. When there isn't a translated resource available the en-US resource is used. To add a translation download the code and copy the LanguageConsts.resx file, rename the file to LanguageConsts.[culture].resx (e.g. LanguageConsts.fr.resx for French). Afterwards open the resource file and translate it. Then recompile the source and use the SetCulture method in the reader class to set the UI culture.</li>
+</ul>
+</li>
 <li>
 <p>2014-07-06 Version 1.7</p>
 
@@ -163,6 +181,16 @@ then this one gets converted to HTML.</li>
 </ul>
 </li>
 </ul><h1>
+<a name="installing-via-nuget" class="anchor" href="#installing-via-nuget"><span class="octicon octicon-link"></span></a>Installing via NuGet</h1>
+
+<p>The easiest way to install MSGReader is via NuGet.</p>
+
+<p>In Visual Studio's Package Manager Console, simply enter the following command:</p>
+
+<pre><code>Install-Package MSGReader
+</code></pre>
+
+<h1>
 <a name="side-note" class="anchor" href="#side-note"><span class="octicon octicon-link"></span></a>Side note</h1>
 
 <p>This project can also be used from a COM based language like VB script or VB6.
