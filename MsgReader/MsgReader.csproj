@@ -121,6 +121,7 @@
     <Compile Include="Outlook\Storage.cs" />
     <Compile Include="Outlook\Task.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="ReaderEx.cs" />
     <Compile Include="Reader.cs" />
     <Compile Include="Rtf\Attribute.cs" />
     <Compile Include="Rtf\BorderStyle.cs" />

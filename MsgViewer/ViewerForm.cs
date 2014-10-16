@@ -154,5 +154,56 @@ namespace MsgViewer
                 File.WriteAllText(saveFileDialog1.FileName, text);
             }
         }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            // Create an instance of the open file dialog box.
+            var openFileDialog1 = new OpenFileDialog
+            {
+                // ReSharper disable once LocalizableElement
+                Filter = "MSG Files (.msg)|*.msg|EML Files (.eml)|*.eml",
+                FilterIndex = 1,
+                Multiselect = false
+            };
+
+            if (Directory.Exists(Settings.Default.InitialDirectory))
+                openFileDialog1.InitialDirectory = Settings.Default.InitialDirectory;
+
+            // Process input if the user clicked OK.
+            if (openFileDialog1.ShowDialog() == DialogResult.OK)
+            {
+                Settings.Default.InitialDirectory = Path.GetDirectoryName(openFileDialog1.FileName);
+
+                // Open the selected file to read.
+                string tempFolder = null;
+
+                try
+                {
+                    tempFolder = GetTemporaryFolder();
+                    _tempFolders.Add(tempFolder);
+
+                    var msgReader = new Reader();
+                    //msgReader.SetCulture("nl-NL");
+                    //msgReader.SetCulture("de-DE");
+                    var strHtml = msgReader.ExtractToHTMLString(openFileDialog1.FileName, HyperLinkCheckBox.Checked);
+
+                    var error = msgReader.GetErrorMessage();
+
+                    if (!string.IsNullOrEmpty(error))
+                        throw new Exception(error);
+
+                    webBrowser1.DocumentText= strHtml;
+
+                    FilesListBox.Items.Clear();
+                }
+                catch (Exception ex)
+                {
+                    if (tempFolder != null && Directory.Exists(tempFolder))
+                        Directory.Delete(tempFolder, true);
+
+                    MessageBox.Show(ex.Message);
+                }
+            }
+        }
     }
 }

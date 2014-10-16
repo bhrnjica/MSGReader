@@ -65,7 +65,7 @@ namespace MsgReader
     /// </summary>
     [Guid("E9641DF0-18FC-11E2-BC95-1ACF6088709B")]
     [ComVisible(true)]
-    public class Reader : IReader
+    public partial class Reader : IReader
     {
         #region Fields
         /// <summary>
