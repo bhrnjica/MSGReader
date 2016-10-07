@@ -192,7 +192,7 @@ namespace MsgViewer
                     if (!string.IsNullOrEmpty(error))
                         throw new Exception(error);
 
-                    webBrowser1.DocumentText= strHtml;
+                    webBrowser2.DocumentText= strHtml;
 
                     FilesListBox.Items.Clear();
                 }
