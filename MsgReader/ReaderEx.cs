@@ -26,7 +26,7 @@ namespace MsgReader
         public string ExtractToHTMLString(string inputFile, bool hyperlinks = false)
         {
             _errorMessage = string.Empty;
-
+            string temp = " ";
             var extension = CheckFileName(inputFile);
 
             switch (extension)
@@ -48,22 +48,22 @@ namespace MsgReader
                             case Storage.Message.MessageType.SignedEmail:
                                 return WriteMsgEmailToString(message, hyperlinks);
 
-                            //case Storage.Message.MessageType.AppointmentRequest:
-                            //case Storage.Message.MessageType.Appointment:
-                            //case Storage.Message.MessageType.AppointmentResponse:
-                            //case Storage.Message.MessageType.AppointmentResponsePositive:
-                            //case Storage.Message.MessageType.AppointmentResponseNegative:
-                            //    return WriteMsgAppointment(message, outputFolder, hyperlinks).ToArray();
+                            case Storage.Message.MessageType.AppointmentRequest:
+                            case Storage.Message.MessageType.Appointment:
+                            case Storage.Message.MessageType.AppointmentResponse:
+                            case Storage.Message.MessageType.AppointmentResponsePositive:
+                            case Storage.Message.MessageType.AppointmentResponseNegative:
+                                return WriteMsgAppointmentEx(message, temp, hyperlinks);
 
-                            //case Storage.Message.MessageType.Task:
-                            //case Storage.Message.MessageType.TaskRequestAccept:
-                            //    return WriteMsgTask(message, outputFolder, hyperlinks).ToArray();
+                            case Storage.Message.MessageType.Task:
+                            case Storage.Message.MessageType.TaskRequestAccept:
+                                return WriteMsgTaskEx(message, temp, hyperlinks);
 
-                            //case Storage.Message.MessageType.Contact:
-                            //    return WriteMsgContact(message, outputFolder, hyperlinks).ToArray();
+                            case Storage.Message.MessageType.Contact:
+                                return WriteMsgContactEx(message, temp, hyperlinks);
 
-                            //case Storage.Message.MessageType.StickyNote:
-                            //    return WriteMsgStickyNote(message, outputFolder).ToArray();
+                            case Storage.Message.MessageType.StickyNote:
+                                return WriteMsgStickyNoteEx(message, temp);
 
                             case Storage.Message.MessageType.Unknown:
                                 throw new MRFileTypeNotSupported("Unknown message type");
@@ -1291,6 +1291,748 @@ namespace MsgReader
                     }
                 }
             }
+        }
+        #endregion
+
+        #region WriteMsgAppointment
+        /// <summary>
+        /// Writes the body of the MSG Appointment to html or text and extracts all the attachments. The
+        /// result is returned as a List of strings
+        /// </summary>
+        /// <param name="message"><see cref="Storage.Message"/></param>
+        /// <param name="outputFolder">The folder where we need to write the output</param>
+        /// <param name="hyperlinks">When true then hyperlinks are generated for the To, CC, BCC and attachments</param>
+        /// <returns></returns>
+        private string WriteMsgAppointmentEx(Storage.Message message, string outputFolder, bool hyperlinks)
+        {
+            var fileName = "appointment";
+            bool htmlBody;
+            string body;
+            string dummy;
+            List<string> attachmentList;
+            List<string> files;
+
+            PreProcessMsgFileEx(message,
+                hyperlinks,
+             //   outputFolder,
+                ref fileName,
+                out htmlBody,
+                out body,
+                out dummy,
+                out attachmentList,
+                out files);
+
+            if (!htmlBody)
+                hyperlinks = false;
+
+            var maxLength = 0;
+
+            // Calculate padding width when we are going to write a text file
+            if (!htmlBody)
+            {
+                var languageConsts = new List<string>
+                {
+                    #region LanguageConsts
+                    LanguageConsts.AppointmentSubjectLabel,
+                    LanguageConsts.AppointmentLocationLabel,
+                    LanguageConsts.AppointmentStartDateLabel,
+                    LanguageConsts.AppointmentEndDateLabel,
+                    LanguageConsts.AppointmentRecurrenceTypeLabel,
+                    LanguageConsts.AppointmentClientIntentLabel,
+                    LanguageConsts.AppointmentOrganizerLabel,
+                    LanguageConsts.AppointmentRecurrencePaternLabel,
+                    LanguageConsts.AppointmentOrganizerLabel,
+                    LanguageConsts.AppointmentMandatoryParticipantsLabel,
+                    LanguageConsts.AppointmentOptionalParticipantsLabel,
+                    LanguageConsts.AppointmentCategoriesLabel,
+                    LanguageConsts.ImportanceLabel,
+                    LanguageConsts.TaskDateCompleted,
+                    LanguageConsts.EmailCategoriesLabel
+                    #endregion
+                };
+
+                maxLength = languageConsts.Select(languageConst => languageConst.Length).Concat(new[] { 0 }).Max() + 2;
+            }
+
+            var appointmentHeader = new StringBuilder();
+
+            // Start of table
+            WriteHeaderStart(appointmentHeader, htmlBody);
+
+            // Subject
+            WriteHeaderLine(appointmentHeader, htmlBody, maxLength, LanguageConsts.AppointmentSubjectLabel,
+                message.Subject);
+
+            // Location
+            WriteHeaderLine(appointmentHeader, htmlBody, maxLength, LanguageConsts.AppointmentLocationLabel,
+                message.Appointment.Location);
+
+            // Empty line
+            WriteHeaderEmptyLine(appointmentHeader, htmlBody);
+
+            // Start
+            if (message.Appointment.Start != null)
+                WriteHeaderLine(appointmentHeader, htmlBody, maxLength, LanguageConsts.AppointmentStartDateLabel,
+                    ((DateTime)message.Appointment.Start).ToString(LanguageConsts.DataFormatWithTime));
+
+            // End
+            if (message.Appointment.End != null)
+                WriteHeaderLine(appointmentHeader, htmlBody, maxLength,
+                    LanguageConsts.AppointmentEndDateLabel,
+                    ((DateTime)message.Appointment.End).ToString(LanguageConsts.DataFormatWithTime));
+
+            // Empty line
+            WriteHeaderEmptyLine(appointmentHeader, htmlBody);
+
+            // Recurrence type
+            if (!string.IsNullOrEmpty(message.Appointment.RecurrenceTypeText))
+                WriteHeaderLine(appointmentHeader, htmlBody, maxLength, LanguageConsts.AppointmentRecurrenceTypeLabel,
+                    message.Appointment.RecurrenceTypeText);
+
+            // Recurrence patern
+            if (!string.IsNullOrEmpty(message.Appointment.RecurrencePatern))
+            {
+                WriteHeaderLine(appointmentHeader, htmlBody, maxLength, LanguageConsts.AppointmentRecurrencePaternLabel,
+                    message.Appointment.RecurrencePatern);
+
+                // Empty line
+                WriteHeaderEmptyLine(appointmentHeader, htmlBody);
+            }
+
+            // Status
+            if (message.Appointment.ClientIntentText != null)
+                WriteHeaderLine(appointmentHeader, htmlBody, maxLength, LanguageConsts.AppointmentClientIntentLabel,
+                    message.Appointment.ClientIntentText);
+
+            // Appointment organizer (FROM)
+            WriteHeaderLineNoEncoding(appointmentHeader, htmlBody, maxLength, LanguageConsts.AppointmentOrganizerLabel,
+                message.GetEmailSender(htmlBody, hyperlinks));
+
+            // Mandatory participants (TO)
+            WriteHeaderLineNoEncoding(appointmentHeader, htmlBody, maxLength,
+                LanguageConsts.AppointmentMandatoryParticipantsLabel,
+                message.GetEmailRecipients(Storage.Recipient.RecipientType.To, htmlBody, hyperlinks));
+
+            // Optional participants (CC)
+            var cc = message.GetEmailRecipients(Storage.Recipient.RecipientType.Cc, htmlBody, hyperlinks);
+            if (!string.IsNullOrEmpty(cc))
+                WriteHeaderLineNoEncoding(appointmentHeader, htmlBody, maxLength,
+                    LanguageConsts.AppointmentOptionalParticipantsLabel, cc);
+
+            // Empty line
+            WriteHeaderEmptyLine(appointmentHeader, htmlBody);
+
+            // Categories
+            var categories = message.Categories;
+            if (categories != null)
+            {
+                WriteHeaderLine(appointmentHeader, htmlBody, maxLength, LanguageConsts.EmailCategoriesLabel,
+                    String.Join("; ", categories));
+
+                // Empty line
+                WriteHeaderEmptyLine(appointmentHeader, htmlBody);
+            }
+
+            // Urgent
+            var importance = message.ImportanceText;
+            if (!string.IsNullOrEmpty(importance))
+            {
+                WriteHeaderLine(appointmentHeader, htmlBody, maxLength, LanguageConsts.ImportanceLabel, importance);
+
+                // Empty line
+                WriteHeaderEmptyLine(appointmentHeader, htmlBody);
+            }
+
+            // Attachments
+            if (attachmentList.Count != 0)
+            {
+                WriteHeaderLineNoEncoding(appointmentHeader, htmlBody, maxLength,
+                    LanguageConsts.AppointmentAttachmentsLabel,
+                    string.Join(", ", attachmentList));
+
+                // Empty line
+                WriteHeaderEmptyLine(appointmentHeader, htmlBody);
+            }
+
+            // End of table + empty line
+            WriteHeaderEnd(appointmentHeader, htmlBody);
+
+            body = InjectHeader(body, appointmentHeader.ToString());
+
+            // Write the body to a file
+           // File.WriteAllText(fileName, body, Encoding.UTF8);
+
+            // return files;
+            return body;
+        }
+        #endregion
+
+        #region WriteMsgTask
+        /// <summary>
+        /// Writes the task body of the MSG Task to html or text and extracts all the attachments. The
+        /// result is return as a List of strings
+        /// </summary>
+        /// <param name="message"><see cref="Storage.Message"/></param>
+        /// <param name="outputFolder">The folder where we need to write the output</param>
+        /// <param name="hyperlinks">When true then hyperlinks are generated attachments</param>
+        /// <returns></returns>
+        private string WriteMsgTaskEx(Storage.Message message, string outputFolder, bool hyperlinks)
+        {
+            var fileName = "task";
+            bool htmlBody;
+            string body;
+            string dummy;
+            List<string> attachmentList;
+            List<string> files;
+
+            PreProcessMsgFileEx(message,
+                hyperlinks,
+             //   outputFolder,
+                ref fileName,
+                out htmlBody,
+                out body,
+                out dummy,
+                out attachmentList,
+                out files);
+
+            var maxLength = 0;
+
+            // Calculate padding width when we are going to write a text file
+            if (!htmlBody)
+            {
+                var languageConsts = new List<string>
+                {
+                    #region LanguageConsts
+                    LanguageConsts.TaskSubjectLabel,
+                    LanguageConsts.TaskStartDateLabel,
+                    LanguageConsts.TaskDueDateLabel,
+                    LanguageConsts.ImportanceLabel,
+                    LanguageConsts.TaskStatusLabel,
+                    LanguageConsts.TaskPercentageCompleteLabel,
+                    LanguageConsts.TaskEstimatedEffortLabel,
+                    LanguageConsts.TaskActualEffortLabel,
+                    LanguageConsts.TaskOwnerLabel,
+                    LanguageConsts.TaskContactsLabel,
+                    LanguageConsts.EmailCategoriesLabel,
+                    LanguageConsts.TaskCompanyLabel,
+                    LanguageConsts.TaskBillingInformationLabel,
+                    LanguageConsts.TaskMileageLabel
+                    #endregion
+                };
+
+                maxLength = languageConsts.Select(languageConst => languageConst.Length).Concat(new[] { 0 }).Max() + 2;
+            }
+
+            var taskHeader = new StringBuilder();
+
+            // Start of table
+            WriteHeaderStart(taskHeader, htmlBody);
+
+            // Subject
+            WriteHeaderLine(taskHeader, htmlBody, maxLength, LanguageConsts.TaskSubjectLabel, message.Subject);
+
+            // Task startdate
+            if (message.Task.StartDate != null)
+                WriteHeaderLine(taskHeader, htmlBody, maxLength,
+                    LanguageConsts.TaskStartDateLabel,
+                    ((DateTime)message.Task.StartDate).ToString(LanguageConsts.DataFormatWithTime));
+
+            // Task duedate
+            if (message.Task.DueDate != null)
+                WriteHeaderLine(taskHeader, htmlBody, maxLength,
+                    LanguageConsts.TaskDueDateLabel,
+                    ((DateTime)message.Task.DueDate).ToString(LanguageConsts.DataFormatWithTime));
+
+            // Urgent
+            var importance = message.ImportanceText;
+            if (!string.IsNullOrEmpty(importance))
+            {
+                WriteHeaderLine(taskHeader, htmlBody, maxLength, LanguageConsts.ImportanceLabel, importance);
+
+                // Empty line
+                WriteHeaderEmptyLine(taskHeader, htmlBody);
+            }
+
+            // Empty line
+            WriteHeaderEmptyLine(taskHeader, htmlBody);
+
+            // Status
+            if (message.Task.StatusText != null)
+                WriteHeaderLine(taskHeader, htmlBody, maxLength, LanguageConsts.TaskStatusLabel, message.Task.StatusText);
+
+            // Percentage complete
+            if (message.Task.PercentageComplete != null)
+                WriteHeaderLine(taskHeader, htmlBody, maxLength, LanguageConsts.TaskPercentageCompleteLabel,
+                    (message.Task.PercentageComplete * 100) + "%");
+
+            // Empty line
+            WriteHeaderEmptyLine(taskHeader, htmlBody);
+
+            // Estimated effort
+            if (message.Task.EstimatedEffortText != null)
+            {
+                WriteHeaderLine(taskHeader, htmlBody, maxLength, LanguageConsts.TaskEstimatedEffortLabel,
+                    message.Task.EstimatedEffortText);
+
+                // Actual effort
+                WriteHeaderLine(taskHeader, htmlBody, maxLength, LanguageConsts.TaskActualEffortLabel,
+                    message.Task.ActualEffortText);
+
+                // Empty line
+                WriteHeaderEmptyLine(taskHeader, htmlBody);
+            }
+
+            // Owner
+            if (message.Task.Owner != null)
+            {
+                WriteHeaderLine(taskHeader, htmlBody, maxLength, LanguageConsts.TaskOwnerLabel, message.Task.Owner);
+
+                // Empty line
+                WriteHeaderEmptyLine(taskHeader, htmlBody);
+            }
+
+            // Contacts
+            if (message.Task.Contacts != null)
+                WriteHeaderLine(taskHeader, htmlBody, maxLength, LanguageConsts.TaskContactsLabel,
+                    string.Join("; ", message.Task.Contacts.ToArray()));
+
+            // Categories
+            var categories = message.Categories;
+            if (categories != null)
+                WriteHeaderLine(taskHeader, htmlBody, maxLength, LanguageConsts.EmailCategoriesLabel,
+                    String.Join("; ", categories));
+
+            // Companies
+            if (message.Task.Companies != null)
+                WriteHeaderLine(taskHeader, htmlBody, maxLength, LanguageConsts.TaskCompanyLabel,
+                    string.Join("; ", message.Task.Companies.ToArray()));
+
+            // Billing information
+            if (message.Task.BillingInformation != null)
+                WriteHeaderLine(taskHeader, htmlBody, maxLength, LanguageConsts.TaskBillingInformationLabel,
+                    message.Task.BillingInformation);
+
+            // Mileage
+            if (message.Task.Mileage != null)
+                WriteHeaderLine(taskHeader, htmlBody, maxLength, LanguageConsts.TaskMileageLabel, message.Task.Mileage);
+
+            // Attachments
+            if (attachmentList.Count != 0)
+            {
+                WriteHeaderLineNoEncoding(taskHeader, htmlBody, maxLength, LanguageConsts.AppointmentAttachmentsLabel,
+                    string.Join(", ", attachmentList));
+
+                // Empty line
+                WriteHeaderEmptyLine(taskHeader, htmlBody);
+            }
+
+            // Empty line
+            WriteHeaderEmptyLine(taskHeader, htmlBody);
+
+            // End of table
+            WriteHeaderEnd(taskHeader, htmlBody);
+
+            body = InjectHeader(body, taskHeader.ToString());
+
+            // Write the body to a file
+           // File.WriteAllText(fileName, body, Encoding.UTF8);
+
+            //return files;
+            return body;
+        }
+        #endregion
+
+        #region WriteMsgContact
+        /// <summary>
+        /// Writes the body of the MSG Contact to html or text and extracts all the attachments. The
+        /// result is return as a List of strings
+        /// </summary>
+        /// <param name="message"><see cref="Storage.Message"/></param>
+        /// <param name="outputFolder">The folder where we need to write the output</param>
+        /// <param name="hyperlinks">When true then hyperlinks are generated for the To, CC, BCC and attachments</param>
+        /// <returns></returns>
+        private string WriteMsgContactEx(Storage.Message message, string outputFolder, bool hyperlinks)
+        {
+            var fileName = "contact";
+            bool htmlBody;
+            string body;
+            string contactPhotoFileName;
+            List<string> attachmentList;
+            List<string> files;
+
+            PreProcessMsgFileEx(message,
+                hyperlinks,
+               // outputFolder,
+                ref fileName,
+                out htmlBody,
+                out body,
+                out contactPhotoFileName,
+                out attachmentList,
+                out files);
+
+            var maxLength = 0;
+
+            // Calculate padding width when we are going to write a text file
+            if (!htmlBody)
+            {
+                #region Language consts
+                var languageConsts = new List<string>
+                {
+                    LanguageConsts.DisplayNameLabel,
+                    LanguageConsts.SurNameLabel,
+                    LanguageConsts.GivenNameLabel,
+                    LanguageConsts.FunctionLabel,
+                    LanguageConsts.DepartmentLabel,
+                    LanguageConsts.CompanyLabel,
+                    LanguageConsts.WorkAddressLabel,
+                    LanguageConsts.BusinessTelephoneNumberLabel,
+                    LanguageConsts.BusinessTelephoneNumber2Label,
+                    LanguageConsts.BusinessFaxNumberLabel,
+                    LanguageConsts.HomeAddressLabel,
+                    LanguageConsts.HomeTelephoneNumberLabel,
+                    LanguageConsts.HomeTelephoneNumber2Label,
+                    LanguageConsts.HomeFaxNumberLabel,
+                    LanguageConsts.OtherAddressLabel,
+                    LanguageConsts.OtherFaxLabel,
+                    LanguageConsts.PrimaryTelephoneNumberLabel,
+                    LanguageConsts.PrimaryFaxNumberLabel,
+                    LanguageConsts.AssistantTelephoneNumberLabel,
+                    LanguageConsts.InstantMessagingAddressLabel,
+                    LanguageConsts.CompanyMainTelephoneNumberLabel,
+                    LanguageConsts.CellularTelephoneNumberLabel,
+                    LanguageConsts.CarTelephoneNumberLabel,
+                    LanguageConsts.RadioTelephoneNumberLabel,
+                    LanguageConsts.BeeperTelephoneNumberLabel,
+                    LanguageConsts.CallbackTelephoneNumberLabel,
+                    LanguageConsts.TextTelephoneLabel,
+                    LanguageConsts.ISDNNumberLabel,
+                    LanguageConsts.TelexNumberLabel,
+                    LanguageConsts.Email1EmailAddressLabel,
+                    LanguageConsts.Email1DisplayNameLabel,
+                    LanguageConsts.Email2EmailAddressLabel,
+                    LanguageConsts.Email2DisplayNameLabel,
+                    LanguageConsts.Email3EmailAddressLabel,
+                    LanguageConsts.Email3DisplayNameLabel,
+                    LanguageConsts.BirthdayLabel,
+                    LanguageConsts.WeddingAnniversaryLabel,
+                    LanguageConsts.SpouseNameLabel,
+                    LanguageConsts.ProfessionLabel,
+                    LanguageConsts.HtmlLabel
+                };
+                #endregion
+
+                maxLength = languageConsts.Select(languageConst => languageConst.Length).Concat(new[] { 0 }).Max() + 2;
+            }
+
+            var contactHeader = new StringBuilder();
+
+            // Start of table
+            WriteHeaderStart(contactHeader, htmlBody);
+
+            if (htmlBody && !string.IsNullOrEmpty(contactPhotoFileName))
+                contactHeader.Append(
+                    "<div style=\"height: 250px; position: absolute; top: 20px; right: 20px;\"><img alt=\"\" src=\"" +
+                    contactPhotoFileName + "\" height=\"100%\"></div>");
+
+            // Full name
+            if (!string.IsNullOrEmpty(message.Contact.DisplayName))
+                WriteHeaderLine(contactHeader, htmlBody, maxLength, LanguageConsts.DisplayNameLabel,
+                    message.Contact.DisplayName);
+
+            // Last name
+            if (!string.IsNullOrEmpty(message.Contact.SurName))
+                WriteHeaderLine(contactHeader, htmlBody, maxLength, LanguageConsts.SurNameLabel, message.Contact.SurName);
+
+            // First name
+            if (!string.IsNullOrEmpty(message.Contact.GivenName))
+                WriteHeaderLine(contactHeader, htmlBody, maxLength, LanguageConsts.GivenNameLabel, message.Contact.GivenName);
+
+            // Job title
+            if (!string.IsNullOrEmpty(message.Contact.Function))
+                WriteHeaderLine(contactHeader, htmlBody, maxLength, LanguageConsts.FunctionLabel, message.Contact.Function);
+
+            // Department
+            if (!string.IsNullOrEmpty(message.Contact.Department))
+                WriteHeaderLine(contactHeader, htmlBody, maxLength, LanguageConsts.DepartmentLabel,
+                    message.Contact.Department);
+
+            // Company
+            if (!string.IsNullOrEmpty(message.Contact.Company))
+                WriteHeaderLine(contactHeader, htmlBody, maxLength, LanguageConsts.CompanyLabel, message.Contact.Company);
+
+            // Empty line
+            WriteHeaderEmptyLine(contactHeader, htmlBody);
+
+            // Business address
+            if (!string.IsNullOrEmpty(message.Contact.WorkAddress))
+                WriteHeaderLine(contactHeader, htmlBody, maxLength, LanguageConsts.WorkAddressLabel,
+                    message.Contact.WorkAddress);
+
+            // Home address
+            if (!string.IsNullOrEmpty(message.Contact.HomeAddress))
+                WriteHeaderLine(contactHeader, htmlBody, maxLength, LanguageConsts.HomeAddressLabel,
+                    message.Contact.HomeAddress);
+
+            // Other address
+            if (!string.IsNullOrEmpty(message.Contact.OtherAddress))
+                WriteHeaderLine(contactHeader, htmlBody, maxLength, LanguageConsts.OtherAddressLabel,
+                    message.Contact.OtherAddress);
+
+            // Instant messaging
+            if (!string.IsNullOrEmpty(message.Contact.InstantMessagingAddress))
+                WriteHeaderLine(contactHeader, htmlBody, maxLength, LanguageConsts.InstantMessagingAddressLabel,
+                    message.Contact.InstantMessagingAddress);
+
+            // Empty line
+            WriteHeaderEmptyLine(contactHeader, htmlBody);
+
+            // Business telephone number
+            if (!string.IsNullOrEmpty(message.Contact.BusinessTelephoneNumber))
+                WriteHeaderLine(contactHeader, htmlBody, maxLength, LanguageConsts.BusinessTelephoneNumberLabel,
+                    message.Contact.BusinessTelephoneNumber);
+
+            // Business telephone number 2
+            if (!string.IsNullOrEmpty(message.Contact.BusinessTelephoneNumber2))
+                WriteHeaderLine(contactHeader, htmlBody, maxLength, LanguageConsts.BusinessTelephoneNumber2Label,
+                    message.Contact.BusinessTelephoneNumber2);
+
+            // Assistant's telephone number
+            if (!string.IsNullOrEmpty(message.Contact.AssistantTelephoneNumber))
+                WriteHeaderLine(contactHeader, htmlBody, maxLength, LanguageConsts.AssistantTelephoneNumberLabel,
+                    message.Contact.AssistantTelephoneNumber);
+
+            // Company main phone
+            if (!string.IsNullOrEmpty(message.Contact.CompanyMainTelephoneNumber))
+                WriteHeaderLine(contactHeader, htmlBody, maxLength, LanguageConsts.CompanyMainTelephoneNumberLabel,
+                    message.Contact.CompanyMainTelephoneNumber);
+
+            // Home telephone number
+            if (!string.IsNullOrEmpty(message.Contact.HomeTelephoneNumber))
+                WriteHeaderLine(contactHeader, htmlBody, maxLength, LanguageConsts.HomeTelephoneNumberLabel,
+                    message.Contact.HomeTelephoneNumber);
+
+            // Home telephone number 2
+            if (!string.IsNullOrEmpty(message.Contact.HomeTelephoneNumber2))
+                WriteHeaderLine(contactHeader, htmlBody, maxLength, LanguageConsts.HomeTelephoneNumber2Label,
+                    message.Contact.HomeTelephoneNumber2);
+
+            // Mobile phone
+            if (!string.IsNullOrEmpty(message.Contact.CellularTelephoneNumber))
+                WriteHeaderLine(contactHeader, htmlBody, maxLength, LanguageConsts.CellularTelephoneNumberLabel,
+                    message.Contact.CellularTelephoneNumber);
+
+            // Car phone
+            if (!string.IsNullOrEmpty(message.Contact.CarTelephoneNumber))
+                WriteHeaderLine(contactHeader, htmlBody, maxLength, LanguageConsts.CarTelephoneNumberLabel,
+                    message.Contact.CarTelephoneNumber);
+
+            // Radio
+            if (!string.IsNullOrEmpty(message.Contact.RadioTelephoneNumber))
+                WriteHeaderLine(contactHeader, htmlBody, maxLength, LanguageConsts.RadioTelephoneNumberLabel,
+                    message.Contact.RadioTelephoneNumber);
+
+            // Beeper
+            if (!string.IsNullOrEmpty(message.Contact.BeeperTelephoneNumber))
+                WriteHeaderLine(contactHeader, htmlBody, maxLength, LanguageConsts.BeeperTelephoneNumberLabel,
+                    message.Contact.BeeperTelephoneNumber);
+
+            // Callback
+            if (!string.IsNullOrEmpty(message.Contact.CallbackTelephoneNumber))
+                WriteHeaderLine(contactHeader, htmlBody, maxLength, LanguageConsts.CallbackTelephoneNumberLabel,
+                    message.Contact.CallbackTelephoneNumber);
+
+            // Other
+            if (!string.IsNullOrEmpty(message.Contact.OtherTelephoneNumber))
+                WriteHeaderLine(contactHeader, htmlBody, maxLength, LanguageConsts.OtherTelephoneNumberLabel,
+                    message.Contact.OtherTelephoneNumber);
+
+            // Primary telephone number
+            if (!string.IsNullOrEmpty(message.Contact.PrimaryTelephoneNumber))
+                WriteHeaderLine(contactHeader, htmlBody, maxLength, LanguageConsts.PrimaryTelephoneNumberLabel,
+                    message.Contact.PrimaryTelephoneNumber);
+
+            // Telex
+            if (!string.IsNullOrEmpty(message.Contact.TelexNumber))
+                WriteHeaderLine(contactHeader, htmlBody, maxLength, LanguageConsts.TelexNumberLabel,
+                    message.Contact.TelexNumber);
+
+            // TTY/TDD phone
+            if (!string.IsNullOrEmpty(message.Contact.TextTelephone))
+                WriteHeaderLine(contactHeader, htmlBody, maxLength, LanguageConsts.TextTelephoneLabel,
+                    message.Contact.TextTelephone);
+
+            // ISDN
+            if (!string.IsNullOrEmpty(message.Contact.ISDNNumber))
+                WriteHeaderLine(contactHeader, htmlBody, maxLength, LanguageConsts.ISDNNumberLabel,
+                    message.Contact.ISDNNumber);
+
+            // Other fax (primary fax, weird that they call it like this in Outlook)
+            if (!string.IsNullOrEmpty(message.Contact.PrimaryFaxNumber))
+                WriteHeaderLine(contactHeader, htmlBody, maxLength, LanguageConsts.PrimaryFaxNumberLabel,
+                    message.Contact.OtherTelephoneNumber);
+
+            // Business fax
+            if (!string.IsNullOrEmpty(message.Contact.BusinessFaxNumber))
+                WriteHeaderLine(contactHeader, htmlBody, maxLength, LanguageConsts.BusinessFaxNumberLabel,
+                    message.Contact.BusinessFaxNumber);
+
+            // Home fax
+            if (!string.IsNullOrEmpty(message.Contact.HomeFaxNumber))
+                WriteHeaderLine(contactHeader, htmlBody, maxLength, LanguageConsts.HomeFaxNumberLabel,
+                    message.Contact.HomeFaxNumber);
+
+            // Empty line
+            WriteHeaderEmptyLine(contactHeader, htmlBody);
+
+            // E-mail
+            if (!string.IsNullOrEmpty(message.Contact.Email1EmailAddress))
+                WriteHeaderLine(contactHeader, htmlBody, maxLength, LanguageConsts.Email1EmailAddressLabel,
+                    message.Contact.Email1EmailAddress);
+
+            // E-mail display as
+            if (!string.IsNullOrEmpty(message.Contact.Email1DisplayName))
+                WriteHeaderLine(contactHeader, htmlBody, maxLength, LanguageConsts.Email1DisplayNameLabel,
+                    message.Contact.Email1DisplayName);
+
+            // E-mail 2
+            if (!string.IsNullOrEmpty(message.Contact.Email2EmailAddress))
+                WriteHeaderLine(contactHeader, htmlBody, maxLength, LanguageConsts.Email2EmailAddressLabel,
+                    message.Contact.Email2EmailAddress);
+
+            // E-mail display as 2
+            if (!string.IsNullOrEmpty(message.Contact.Email2DisplayName))
+                WriteHeaderLine(contactHeader, htmlBody, maxLength, LanguageConsts.Email2DisplayNameLabel,
+                    message.Contact.Email2DisplayName);
+
+            // E-mail 3
+            if (!string.IsNullOrEmpty(message.Contact.Email3EmailAddress))
+                WriteHeaderLine(contactHeader, htmlBody, maxLength, LanguageConsts.Email3EmailAddressLabel,
+                    message.Contact.Email3EmailAddress);
+
+            // E-mail display as 3
+            if (!string.IsNullOrEmpty(message.Contact.Email3DisplayName))
+                WriteHeaderLine(contactHeader, htmlBody, maxLength, LanguageConsts.Email3DisplayNameLabel,
+                    message.Contact.Email3DisplayName);
+
+            // Empty line
+            WriteHeaderEmptyLine(contactHeader, htmlBody);
+
+            // Birthday
+            if (message.Contact.Birthday != null)
+                WriteHeaderLine(contactHeader, htmlBody, maxLength, LanguageConsts.BirthdayLabel,
+                    ((DateTime)message.Contact.Birthday).ToString(LanguageConsts.DataFormat));
+
+            // Anniversary
+            if (message.Contact.WeddingAnniversary != null)
+                WriteHeaderLine(contactHeader, htmlBody, maxLength, LanguageConsts.WeddingAnniversaryLabel,
+                    ((DateTime)message.Contact.WeddingAnniversary).ToString(LanguageConsts.DataFormat));
+
+            // Spouse/Partner
+            if (!string.IsNullOrEmpty(message.Contact.SpouseName))
+                WriteHeaderLine(contactHeader, htmlBody, maxLength, LanguageConsts.SpouseNameLabel,
+                    message.Contact.SpouseName);
+
+            // Profession
+            if (!string.IsNullOrEmpty(message.Contact.Profession))
+                WriteHeaderLine(contactHeader, htmlBody, maxLength, LanguageConsts.ProfessionLabel,
+                    message.Contact.Profession);
+
+            // Assistant
+            if (!string.IsNullOrEmpty(message.Contact.AssistantName))
+                WriteHeaderLine(contactHeader, htmlBody, maxLength, LanguageConsts.AssistantTelephoneNumberLabel,
+                    message.Contact.AssistantName);
+
+            // Web page
+            if (!string.IsNullOrEmpty(message.Contact.Html))
+                WriteHeaderLine(contactHeader, htmlBody, maxLength, LanguageConsts.HtmlLabel, message.Contact.Html);
+
+            // Empty line
+            WriteHeaderEmptyLine(contactHeader, htmlBody);
+
+            // Categories
+            var categories = message.Categories;
+            if (categories != null)
+                WriteHeaderLine(contactHeader, htmlBody, maxLength, LanguageConsts.EmailCategoriesLabel,
+                    String.Join("; ", categories));
+
+            // Empty line
+            WriteHeaderEmptyLine(contactHeader, htmlBody);
+
+            WriteHeaderEnd(contactHeader, htmlBody);
+
+            body = InjectHeader(body, contactHeader.ToString());
+
+            // Write the body to a file
+           // File.WriteAllText(fileName, body, Encoding.UTF8);
+
+            //return files;
+            return body;
+        }
+        #endregion
+
+        #region WriteMsgStickyNote
+        /// <summary>
+        /// Writes the body of the MSG StickyNote to html or text and extracts all the attachments. The
+        /// result is return as a List of strings
+        /// </summary>
+        /// <param name="message"><see cref="Storage.Message"/></param>
+        /// <param name="outputFolder">The folder where we need to write the output</param>
+        /// <returns></returns>
+        private static string WriteMsgStickyNoteEx(Storage.Message message, string outputFolder)
+        {
+            var files = new List<string>();
+            string stickyNoteFile;
+            var stickyNoteHeader = new StringBuilder();
+
+            // Sticky notes only have RTF or Text bodies
+            var body = message.BodyRtf;
+
+            // If the body is not null then we convert it to HTML
+            if (body != null)
+            {
+                var converter = new RtfToHtmlConverter();
+                body = converter.ConvertRtfToHtml(body);
+                stickyNoteFile = outputFolder +
+                                 (!string.IsNullOrEmpty(message.Subject)
+                                     ? FileManager.RemoveInvalidFileNameChars(message.Subject)
+                                     : "stickynote") + ".htm";
+
+                WriteHeaderStart(stickyNoteHeader, true);
+
+                if (message.SentOn != null)
+                    WriteHeaderLine(stickyNoteHeader, true, 0, LanguageConsts.StickyNoteDateLabel,
+                        ((DateTime)message.SentOn).ToString(LanguageConsts.DataFormatWithTime));
+
+                // Empty line
+                WriteHeaderEmptyLine(stickyNoteHeader, true);
+
+                // End of table + empty line
+                WriteHeaderEnd(stickyNoteHeader, true);
+
+                body = InjectHeader(body, stickyNoteHeader.ToString());
+            }
+            else
+            {
+                body = message.BodyText ?? string.Empty;
+
+                // Sent on
+                if (message.SentOn != null)
+                    WriteHeaderLine(stickyNoteHeader, false, LanguageConsts.StickyNoteDateLabel.Length,
+                        LanguageConsts.StickyNoteDateLabel,
+                        ((DateTime)message.SentOn).ToString(LanguageConsts.DataFormatWithTime));
+
+                body = stickyNoteHeader + body;
+                stickyNoteFile = outputFolder +
+                                 (!string.IsNullOrEmpty(message.Subject)
+                                     ? FileManager.RemoveInvalidFileNameChars(message.Subject)
+                                     : "stickynote") + ".txt";
+            }
+
+            // Write the body to a file
+           // File.WriteAllText(stickyNoteFile, body, Encoding.UTF8);
+            //files.Add(stickyNoteFile);
+            // return files;
+            return body;
         }
         #endregion
     }
