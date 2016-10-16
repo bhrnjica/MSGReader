@@ -185,7 +185,9 @@ namespace MsgViewer
                     var msgReader = new Reader();
                     //msgReader.SetCulture("nl-NL");
                     //msgReader.SetCulture("de-DE");
-                    var strHtml = msgReader.ExtractToHTMLString(openFileDialog1.FileName, HyperLinkCheckBox.Checked);
+                    using (var mh = msgReader.GetMsgMetadata(openFileDialog1.FileName))
+                    { }
+                        var strHtml = msgReader.ExtractToHTMLString(openFileDialog1.FileName, HyperLinkCheckBox.Checked);
 
                     var error = msgReader.GetErrorMessage();
 

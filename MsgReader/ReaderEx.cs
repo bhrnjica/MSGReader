@@ -1173,6 +1173,63 @@ namespace MsgReader
             return body;
         }
 
+        public Storage.Message GetMsgMetadata(string inputFile, bool hyperlinks= false)
+        {
+            var extension = CheckFileName(inputFile);
+            try
+            {
+                switch (extension)
+                {
+                    case ".MSG":
+                        using (var stream = File.Open(inputFile, FileMode.Open, FileAccess.Read))
+                        {
+                            var message = new Storage.Message(stream);
+                            return message;
+                        }
+                }
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+            return null;
+        }
+
+        public Mime.Message GetEmlMetadata(string inputFile, bool hyperlinks = false)
+        {
+            var extension = CheckFileName(inputFile);
+            try
+            {
+                switch (extension)
+                {
+                    case ".EML":
+                        using (var stream = File.Open(inputFile, FileMode.Open, FileAccess.Read))
+                        {
+                            var message = Mime.Message.Load(stream);
+
+                            var fileName = "email";
+                            bool htmlBody;
+                            string body;
+                            List<string> attachmentList;
+                            List<string> files;
+
+                            PreProcessEmlFileEx(message,
+                                hyperlinks,
+                                ref fileName,
+                                out htmlBody,
+                                out body,
+                                out attachmentList,
+                                out files);
+                            return message;
+                        }
+                }
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+            return null;
+        }
         #region PreProcessEmlFile
         /// <summary>
         /// This function pre processes the EML <see cref="Mime.Message"/> object, it tries to find the html (or text) body
